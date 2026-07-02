@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interactive Schedule — Microsoft 365 Copilot Adoption</title>
+  <meta name="description" content="A live, editable Microsoft 365 Copilot adoption timeline that always starts on the current week. Add, remove, filter and export your rollout plan." />
+  <link rel="icon" href="assets/copilot-spark.svg" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .sched-head { padding: 52px 0 36px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin: 0 0 18px; }
+    .toolbar .spacer { flex:1; }
+    .stat { display:inline-flex; gap:6px; align-items:baseline; font-size:.85rem; color:var(--muted); margin-right:14px; }
+    .stat b { font-size:1.05rem; color:var(--ink); }
+
+    .layout { display:grid; grid-template-columns: 240px 1fr; gap:22px; align-items:start; }
+    @media (max-width: 900px){ .layout { grid-template-columns:1fr; } }
+
+    .panel { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:16px 16px 18px; box-shadow:var(--shadow-sm); position:sticky; top:78px; }
+    .panel h4 { margin:.2rem 0 .5rem; font-size:.95rem; }
+    .panel .sub { display:flex; justify-content:space-between; align-items:center; margin-top:14px; }
+    .chk { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:.9rem; cursor:pointer; }
+    .chk input { width:16px; height:16px; accent-color: var(--brand); }
+    .mini-link { font-size:.78rem; background:none; border:none; color:var(--brand-blue); cursor:pointer; padding:0; }
+    .mini-link:hover { text-decoration:underline; }
+    .hr { height:1px; background:var(--line); margin:14px 0; border:0; }
+
+    /* board */
+    .board-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow-sm); }
+    #board { padding: 4px 0 12px; }
+    .gr-row { display:flex; align-items:stretch; border-bottom:1px solid var(--line); }
+    .gr-row:last-child { border-bottom:none; }
+    .gr-head { position:sticky; top:0; z-index:3; background:#fbfaff; }
+    .gr-label { width:190px; flex:0 0 190px; padding:12px 14px; border-right:1px solid var(--line); background:#fff; position:sticky; left:0; z-index:2; display:flex; flex-direction:column; gap:6px; justify-content:center; }
+    .gr-head .gr-label { background:#fbfaff; font-weight:700; }
+    .lane-count { font-size:.72rem; color:var(--muted); }
+    .gr-cells { flex:1; display:grid; gap:6px; padding:6px 8px; }
+    .gr-week { text-align:center; padding:8px 2px; font-size:.72rem; color:var(--muted); border-left:1px dashed #eee; display:flex; flex-direction:column; gap:1px; position:relative; }
+    .gr-week .wk { font-weight:700; color:var(--ink-2); }
+    .gr-week .dt { font-size:.7rem; }
+    .gr-now { background:var(--copilot-gradient-soft); border-radius:8px; }
+    .gr-now .now-tag { font-size:.62rem; font-weight:700; color:var(--brand); }
+
+    .chip { position:relative; display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:9px; font-size:.8rem; line-height:1.15; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,.06); background:#fff; overflow:hidden; cursor:default; }
+    .chip::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--copilot-gradient); }
+    .chip.o-microsoft::before{ background:#0f5bd6; } .chip.o-customer::before{ background:#107c41; }
+    .chip.o-partner::before{ background:#c2570a; } .chip.o-fasttrack::before{ background:#6e5bd8; }
+    .chip-title { flex:1; min-width:0; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; }
+    .chip-check { width:15px; height:15px; accent-color:var(--brand); flex:0 0 auto; cursor:pointer; }
+    .chip-actions { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; gap:2px; padding-left:14px; background:linear-gradient(90deg, rgba(255,255,255,0), #fff 40%); opacity:0; pointer-events:none; transition:opacity .12s; }
+    .chip:hover .chip-actions { opacity:1; pointer-events:auto; }
+    .chip-edit, .chip-del { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
+    .chip-del:hover { color:#c50f1f; background:#fde7e9; }
+    .chip-edit:hover { color:var(--brand); background:#f0ecff; }
+    .chip-done { opacity:.55; }
+    .chip-done .chip-title { text-decoration:line-through; }
+    .empty { padding:40px; text-align:center; color:var(--muted); }
+
+    .legend { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin:0 0 14px; font-size:.82rem; color:var(--muted); }
+    .legend .lg { display:inline-flex; align-items:center; gap:6px; }
+    .legend .bar { width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+    /* modal */
+    .modal { position:fixed; inset:0; background:rgba(11,16,32,.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px; }
+    .modal.open { display:flex; }
+    .modal-card { background:#fff; border-radius:16px; padding:24px; width:min(520px,100%); box-shadow:var(--shadow-lg); }
+    .modal-card h3 { margin-top:0; }
+    .field { margin-bottom:14px; }
+    .field label { display:block; font-size:.82rem; font-weight:600; color:var(--ink-2); margin-bottom:5px; }
+    .field input, .field select, .field textarea { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:.92rem; background:#fff; }
+    .field textarea { min-height:60px; resize:vertical; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
+
+    /* print */
+    #print-area { display:none; }
+    @media print {
+      .nav, .footer, .sched-head, .toolbar, .panel, .board-wrap, #site-nav, #site-footer, .modal { display:none !important; }
+      #print-area { display:block; }
+      .print-head h1 { font-size:20pt; margin:0 0 4px; }
+      .print-head p { color:#444; margin:0 0 16px; }
+      .print-table { width:100%; border-collapse:collapse; font-size:10pt; }
+      .print-table th, .print-table td { border:1px solid #ccc; padding:6px 8px; text-align:left; vertical-align:top; }
+      .print-table thead th { background:#f0eefb; }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <header class="hero sched-head">
+    <div class="container">
+      <p class="eyebrow">Interactive schedule</p>
+      <h1>Your <span class="gradient-text">rollout timeline</span>, always starting this week</h1>
+      <p>The board below is seeded with the sample adoption program and re-anchors to the current week every time you open it. Add your own blocks, filter by track or owner, tick items off, and export when you’re ready.</p>
+    </div>
+  </header>
+
+  <section class="section" style="padding-top:30px">
+    <div class="container">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="add-block">＋ Add block</button>
+        <button class="btn btn-outline" id="export-csv">⬇ Export CSV</button>
+        <button class="btn btn-outline" id="export-pdf">🖨 Export PDF</button>
+        <button class="btn btn-outline" id="reset-sample">↺ Reset to sample</button>
+        <div class="spacer"></div>
+        <label class="stat">Window:
+          <select id="weeks-sel" class="btn btn-outline btn-sm" style="padding:6px 8px">
+            <option value="8">8 weeks</option>
+            <option value="14">14 weeks</option>
+            <option value="20">20 weeks</option>
+            <option value="26">26 weeks</option>
+          </select>
+        </label>
+      </div>
+      <div style="margin-bottom:16px">
+        <span class="stat">Total <b id="count-total">0</b></span>
+        <span class="stat">Shown <b id="count-shown">0</b></span>
+        <span class="stat">Complete <b id="count-done">0</b></span>
+      </div>
+      <div class="legend">
+        <span style="font-weight:600;color:var(--ink-2)">Owner:</span>
+        <span class="lg"><span class="bar" style="background:#0f5bd6"></span>Microsoft</span>
+        <span class="lg"><span class="bar" style="background:#107c41"></span>Customer</span>
+        <span class="lg"><span class="bar" style="background:#c2570a"></span>Partner</span>
+        <span class="lg"><span class="bar" style="background:#6e5bd8"></span>FastTrack / CSU</span>
+        <span style="margin-left:auto">Hover a block to edit or remove · double-click to edit</span>
+      </div>
+
+      <div class="layout">
+        <aside class="panel">
+          <div class="sub" style="margin-top:0"><h4 style="margin:0">Tracks</h4>
+            <span><button class="mini-link" id="select-all-tracks">All</button> · <button class="mini-link" id="clear-all-tracks">None</button></span>
+          </div>
+          <div id="filter-tracks"></div>
+          <hr class="hr" />
+          <h4>Owner</h4>
+          <div id="filter-owners"></div>
+          <hr class="hr" />
+          <label class="chk"><input type="checkbox" id="filter-open"> Hide completed</label>
+          <p style="font-size:.76rem;color:var(--muted);margin:14px 0 0">Tip: double-click a block to edit it. Changes save to this browser only.</p>
+        </aside>
+
+        <div class="board-wrap">
+          <div id="board"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Add / edit modal -->
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h3 id="modal-title">Add a block</h3>
+      <form id="modal-form">
+        <input type="hidden" id="f-id" />
+        <div class="field">
+          <label for="f-title">Title</label>
+          <input id="f-title" placeholder="e.g. Sales team Copilot deep dive" required />
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="f-track">Track</label><select id="f-track"></select></div>
+          <div class="field"><label for="f-owner">Owner</label><select id="f-owner"></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="f-start">Start week</label><select id="f-start"></select></div>
+          <div class="field"><label for="f-span">Duration (weeks)</label><input id="f-span" type="number" min="1" max="26" value="1" /></div>
+        </div>
+        <div class="field">
+          <label for="f-notes">Notes (optional)</label>
+          <textarea id="f-notes" placeholder="Audience, owner detail, links…"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save block</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="print-area"></div>
+
+  <div id="site-footer"></div>
+  <script src="assets/nav.js"></script>
+  <script src="assets/schedule.js"></script>
+</body>
+</html>

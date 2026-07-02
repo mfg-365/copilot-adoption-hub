@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Team &amp; Roles — Microsoft 365 Copilot Adoption</title>
+  <meta name="description" content="The Microsoft and customer roles that drive a Microsoft 365 Copilot adoption program, with responsibilities and assignable owners." />
+  <link rel="icon" href="assets/copilot-spark.svg" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    .assignee { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: .9rem; background:#fff; }
+    .assignee:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+    .role-tag { font-size:.72rem; font-weight:700; color:var(--brand); text-transform:uppercase; letter-spacing:.05em; }
+    .save-note { font-size:.85rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <header class="hero" style="padding:64px 0 56px">
+    <div class="container">
+      <p class="eyebrow">Team &amp; Roles</p>
+      <h1>Name the people who <span class="gradient-text">own the outcome</span></h1>
+      <p>Adoption succeeds when responsibilities are explicit. Assign each role below — your entries are saved in this browser so you can return to your plan.</p>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">Microsoft team</p>
+        <h2>Your Microsoft engagement team</h2>
+        <p class="lead">The Microsoft roles that guide strategy, enablement, and technical delivery across the program.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th style="width:26%">Key role</th><th>Responsibilities</th><th style="width:20%">Person / people assigned</th></tr></thead>
+          <tbody id="ms-team"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">Customer team</p>
+        <h2>Identify your team members</h2>
+        <p class="lead">The internal roles that carry change management, training, communications, and IT configuration.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th style="width:24%">Key role</th><th>Responsibilities</th><th style="width:20%">Person / people assigned</th></tr></thead>
+          <tbody id="cust-team"></tbody>
+        </table>
+      </div>
+      <p class="save-note" style="margin-top:14px">💾 Assignments save automatically to this browser. <button class="btn btn-outline btn-sm" id="clear-assign" type="button">Clear all assignments</button></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="card" style="background:var(--copilot-gradient-soft);border:none">
+        <h3>Champion ratio rule of thumb</h3>
+        <p class="mb-0">Plan for roughly <strong>one champion per 50 users</strong>. For 1,000 users you’ll want about 20 champions — adjust to your org structure (a 25-person team may only need one). Track your champions on the <a href="schedule.html">schedule</a> as the community stands up.</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+  <script src="assets/nav.js"></script>
+  <script>
+    var msTeam = [
+      ["Account Director (ATU)", "Overall account management across the Microsoft technology stack. Key sponsor for this program."],
+      ["Account Technology Strategist (ATU)", "Acts as CTO to the customer to help assist in strategy."],
+      ["AI Modern Workforce Specialist (STU)", "Assists in managing the overall program and program escalation."],
+      ["Copilot Solution Engineer (STU)", "Training and technical guidance on implementation."],
+      ["Copilot Solution Architect (CSU)", "Training and technical guidance on implementation."],
+      ["Customer Success Account Manager (CSU)", "Assists in managing the overall program and support escalation as needed. Manages technical cases that arise during deployment."]
+    ];
+    var custTeam = [
+      ["Executive Sponsor", "Help identify and prioritize top business needs. Encourage shared planning between enablement and technical teams. Communicate the vision to leaders, actively use Copilot to reinforce enablement, and promote the program."],
+      ["Change Lead / Program Manager", "Develop change management plans. Identify stakeholders, assess impact, and create communication and training strategies. Anticipate objections and evaluate adoption, adjusting as needed."],
+      ["Champions", "Deliver Lunch &amp; Learn sessions, help colleagues understand ‘what’s in it for me’, guide people to support, gather feedback, handle objections, and share success stories."],
+      ["Training Lead", "Confirm the training strategy, plan and approach. Manage schedules, dependencies, issues and risks. Monitor and report progress and support champions in delivery."],
+      ["Department Leads (Stakeholders)", "Help prioritize business needs, communicate the vision within their org, actively use Copilot, and promote the enablement program."],
+      ["IT Leads", "Configure Microsoft 365 Copilot for the organization, monitor performance and maintain functionality, and ensure timely licensing to meet the timeline."],
+      ["Communication Lead", "Ensure the communication plan aligns with goals, keep messaging consistent across platforms, and coordinate across departments for unified messaging."],
+      ["HR Lead", "Ensure smooth integration into the work environment and alignment with company policies and compliance — especially data privacy and ethical AI use."],
+      ["Community Manager", "Execute engagement strategies, curate engaging content, model great behaviours, mentor champions, manage visibility, and report on adoption metrics and feedback."]
+    ];
+
+    var STORE = "cp-adopt-roles";
+    function loadAssign(){ try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e){ return {}; } }
+    function saveAssign(a){ localStorage.setItem(STORE, JSON.stringify(a)); }
+    var assigned = loadAssign();
+
+    function render(tbodyId, rows, prefix){
+      var tb = document.getElementById(tbodyId);
+      tb.innerHTML = rows.map(function(r, i){
+        var key = prefix + i;
+        var val = assigned[key] ? String(assigned[key]).replace(/"/g,'&quot;') : "";
+        return "<tr><td><span class='role-tag'>"+ (prefix==='ms'?'Microsoft':'Customer') +"</span><br><strong>"+r[0]+"</strong></td>"+
+               "<td>"+r[1]+"</td>"+
+               "<td><input class='assignee' data-key='"+key+"' placeholder='Add name…' value=\""+val+"\"></td></tr>";
+      }).join("");
+    }
+    render("ms-team", msTeam, "ms");
+    render("cust-team", custTeam, "cust");
+
+    document.addEventListener("input", function(e){
+      if (e.target.classList.contains("assignee")){
+        assigned[e.target.getAttribute("data-key")] = e.target.value;
+        saveAssign(assigned);
+      }
+    });
+    document.getElementById("clear-assign").addEventListener("click", function(){
+      if (confirm("Clear all role assignments in this browser?")){
+        assigned = {}; saveAssign(assigned);
+        document.querySelectorAll(".assignee").forEach(function(i){ i.value=""; });
+      }
+    });
+  </script>
+</body>
+</html>
