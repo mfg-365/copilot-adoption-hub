@@ -390,10 +390,39 @@
   function toggleArr(arr, val, on) { var i = arr.indexOf(val); if (on && i < 0) arr.push(val); if (!on && i >= 0) arr.splice(i, 1); }
 
   function init() {
-    document.getElementById("weeks-sel").value = String(state.weeks);
-    var di = document.getElementById("anchor-date");
-    if (di) di.value = state.anchor || toISODate(currentMonday());
-    buildFilters(); wire(); render();
+    try {
+      normalizeState();
+      save();
+      document.getElementById("weeks-sel").value = String(state.weeks);
+      var di = document.getElementById("anchor-date");
+      if (di) di.value = state.anchor || toISODate(currentMonday());
+      buildFilters(); wire(); render();
+    } catch (err) {
+      // A corrupt saved state or version mismatch must never leave a blank, dead page.
+      try { console.error("Schedule init failed, resetting to sample.", err); } catch (e) {}
+      state = defaultState(); save();
+      try {
+        document.getElementById("weeks-sel").value = String(state.weeks);
+        var d2 = document.getElementById("anchor-date");
+        if (d2) d2.value = toISODate(currentMonday());
+        buildFilters(); wire(); render();
+      } catch (e2) {}
+    }
+  }
+  function normalizeState() {
+    if (!state || typeof state !== "object") state = defaultState();
+    if (!Array.isArray(state.items)) state.items = defaultState().items;
+    if (typeof state.weeks !== "number") state.weeks = 14;
+    if (!state.filters || typeof state.filters !== "object") state.filters = {};
+    if (!Array.isArray(state.filters.tracks)) state.filters.tracks = TRACKS.map(function (t) { return t.id; });
+    if (!Array.isArray(state.filters.owners)) state.filters.owners = OWNERS.map(function (o) { return o.id; });
+    state.items.forEach(function (it) {
+      if (!it.id) it.id = uid();
+      it.start = Math.max(0, parseInt(it.start, 10) || 0);
+      it.span = Math.max(1, parseInt(it.span, 10) || 1);
+      if (TRACKS.map(function (t) { return t.id; }).indexOf(it.track) < 0) it.track = "User";
+      if (OWNERS.map(function (o) { return o.id; }).indexOf(it.owner) < 0) it.owner = "Customer";
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
