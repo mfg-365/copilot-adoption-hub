@@ -34,6 +34,7 @@
       "</div>" +
       '<p class="disclaimer">This is an internal planning aid built from the “Sample Adoption – Copilot Roles &amp; Schedule” template. ' +
       'Sample timelines are illustrative — adjust to your organization. Not an official Microsoft product page.</p>' +
+      '<p class="disclaimer">Availability of Microsoft-delivered resources, workshops and engagements shown here depends on the customer’s specific contract, entitlements and eligibility. Confirm scope with your Microsoft account team.</p>' +
     "</div></footer>";
 
   function mount() {

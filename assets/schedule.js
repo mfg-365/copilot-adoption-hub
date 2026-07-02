@@ -145,10 +145,11 @@
         var o = ownerMeta(it.owner);
         cells += '<div class="chip ' + (it.done ? "chip-done " : "") + o.cls + '" ' +
           'style="grid-column:' + (start + 1) + " / span " + span + ';grid-row:' + (it._lane + 1) + '" ' +
-          'data-id="' + it.id + '" title="' + esc(it.title) + " · " + o.label + (it.notes ? " — " + esc(it.notes) : "") + '">' +
-          '<input type="checkbox" class="chip-check" ' + (it.done ? "checked" : "") + ' aria-label="Mark complete">' +
+          'data-id="' + it.id + '" title="' + esc(it.title) + " · " + o.label + (it.done ? " · Complete" : "") + (it.notes ? " — " + esc(it.notes) : "") + '">' +
+          (it.done ? '<span class="chip-tick" aria-hidden="true">✓</span>' : '') +
           '<span class="chip-title">' + esc(it.title) + '</span>' +
           '<span class="chip-actions">' +
+            '<button class="chip-done-btn" title="' + (it.done ? "Mark as active" : "Mark complete") + '" aria-label="Toggle complete">' + (it.done ? "↺" : "✓") + '</button>' +
             '<button class="chip-edit" title="Edit" aria-label="Edit">✎</button>' +
             '<button class="chip-del" title="Remove" aria-label="Remove">×</button>' +
           '</span>' +
@@ -202,6 +203,7 @@
     document.getElementById("f-owner").innerHTML = OWNERS.map(function (o) { return '<option value="' + o.id + '"' + (editing && item.owner === o.id ? " selected" : "") + '>' + o.label + "</option>"; }).join("");
     document.getElementById("f-start").innerHTML = weekOptions(editing ? item.start : 0);
     document.getElementById("f-span").value = editing ? item.span : 1;
+    document.getElementById("f-done").checked = editing ? !!item.done : false;
     document.getElementById("modal").classList.add("open");
     setTimeout(function () { document.getElementById("f-title").focus(); }, 30);
   }
@@ -216,12 +218,13 @@
       owner: document.getElementById("f-owner").value,
       start: parseInt(document.getElementById("f-start").value, 10) || 0,
       span: Math.max(1, parseInt(document.getElementById("f-span").value, 10) || 1),
-      notes: document.getElementById("f-notes").value.trim()
+      notes: document.getElementById("f-notes").value.trim(),
+      done: document.getElementById("f-done").checked
     };
     if (id) {
       state.items = state.items.map(function (it) { return it.id === id ? Object.assign(it, data) : it; });
     } else {
-      state.items.push(Object.assign({ id: uid(), done: false }, data));
+      state.items.push(Object.assign({ id: uid() }, data));
     }
     save(); closeModal(); render();
   }
@@ -373,9 +376,6 @@
         toggleArr(state.filters.owners, e.target.getAttribute("data-fowner"), e.target.checked); save(); render();
       } else if (e.target.id === "filter-open") {
         state.filters.onlyOpen = e.target.checked; save(); render();
-      } else if (e.target.classList.contains("chip-check")) {
-        var id = e.target.closest(".chip").getAttribute("data-id");
-        setDone(id, e.target.checked);
       }
     });
 
@@ -386,11 +386,14 @@
         state.items = state.items.filter(function (it) { return it.id !== id; }); save(); render();
       } else if (e.target.classList.contains("chip-edit")) {
         openModal(state.items.filter(function (it) { return it.id === id; })[0]);
+      } else if (e.target.classList.contains("chip-done-btn")) {
+        var it = state.items.filter(function (x) { return x.id === id; })[0];
+        if (it) setDone(id, !it.done);
       }
     });
     document.getElementById("board").addEventListener("dblclick", function (e) {
       var chip = e.target.closest(".chip"); if (!chip) return;
-      if (e.target.classList.contains("chip-check")) return;
+      if (e.target.classList.contains("chip-done-btn")) return;
       openModal(state.items.filter(function (it) { return it.id === chip.getAttribute("data-id"); })[0]);
     });
 

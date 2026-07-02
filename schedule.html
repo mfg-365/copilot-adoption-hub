@@ -66,13 +66,14 @@
     .chip.o-microsoft::before{ background:#0f5bd6; } .chip.o-customer::before{ background:#107c41; }
     .chip.o-partner::before{ background:#c2570a; } .chip.o-fasttrack::before{ background:#6e5bd8; }
     .chip-title { flex:1; min-width:0; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; }
-    .chip-check { width:15px; height:15px; accent-color:var(--brand); flex:0 0 auto; cursor:pointer; }
+    .chip-tick { flex:0 0 auto; color:#107c41; font-weight:800; font-size:.9rem; line-height:1; }
     .chip-actions { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; gap:2px; padding-left:14px; background:linear-gradient(90deg, rgba(255,255,255,0), #fff 40%); opacity:0; pointer-events:none; transition:opacity .12s; }
     .chip:hover .chip-actions { opacity:1; pointer-events:auto; }
-    .chip-edit, .chip-del { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
+    .chip-edit, .chip-del, .chip-done-btn { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
+    .chip-done-btn:hover { color:#107c41; background:#e9f9ef; }
     .chip-del:hover { color:#c50f1f; background:#fde7e9; }
     .chip-edit:hover { color:var(--brand); background:#f0ecff; }
-    .chip-done { opacity:.55; }
+    .chip-done { opacity:.6; }
     .chip-done .chip-title { text-decoration:line-through; }
     .empty { padding:40px; text-align:center; color:var(--muted); }
 
@@ -111,8 +112,8 @@
   <header class="hero sched-head">
     <div class="container">
       <p class="eyebrow">Interactive schedule</p>
-      <h1>Your <span class="gradient-text">rollout timeline</span>, always starting this week</h1>
-      <p>The board below is seeded with the sample adoption program and re-anchors to the current week every time you open it. Add your own blocks, filter by track or owner, tick items off, adjust the start date, import a previous export, and download when you’re ready.</p>
+      <h1>Your <span class="gradient-text">rollout timeline</span>, your way</h1>
+      <p>Add your own blocks, filter by track or owner, mark items complete, adjust the start date, import a previous export, and download when you’re ready.</p>
     </div>
   </header>
 
@@ -153,7 +154,7 @@
         <span class="lg"><span class="bar" style="background:#107c41"></span>Customer</span>
         <span class="lg"><span class="bar" style="background:#c2570a"></span>Partner</span>
         <span class="lg"><span class="bar" style="background:#6e5bd8"></span>FastTrack / CSU</span>
-        <span style="margin-left:auto">Hover a block to edit or remove · double-click to edit</span>
+        <span style="margin-left:auto">Hover a block to mark complete (✓), edit or remove · double-click to edit</span>
       </div>
 
       <div class="board-wrap" id="board-wrap">
@@ -204,6 +205,9 @@
         <div class="field">
           <label for="f-notes">Notes (optional)</label>
           <textarea id="f-notes" placeholder="Audience, owner detail, links…"></textarea>
+        </div>
+        <div class="field">
+          <label class="chk" style="font-weight:600"><input type="checkbox" id="f-done"> Mark as complete</label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-outline" id="modal-cancel">Cancel</button>
