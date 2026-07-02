@@ -6,7 +6,7 @@
   <title>Interactive Schedule — Microsoft 365 Copilot Adoption</title>
   <meta name="description" content="A live, editable Microsoft 365 Copilot adoption timeline that always starts on the current week. Add, remove, filter and export your rollout plan." />
   <link rel="icon" href="assets/copilot-spark.svg" />
-  <link rel="stylesheet" href="assets/styles.css?v=6" />
+  <link rel="stylesheet" href="assets/styles.css?v=7" />
   <style>
     .sched-head { padding: 52px 0 36px; }
     .toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin: 0 0 18px; }
@@ -54,19 +54,32 @@
     .gr-label { width:190px; flex:0 0 190px; padding:12px 14px; border-right:1px solid var(--line); background:#fff; position:sticky; left:0; z-index:2; display:flex; flex-direction:column; gap:6px; justify-content:center; }
     .gr-head .gr-label { background:#fbfaff; font-weight:700; }
     .lane-count { font-size:.72rem; color:var(--muted); }
-    .gr-cells { flex:1; display:grid; gap:6px; padding:6px 8px; }
+    .gr-cells { flex:1; display:grid; gap:6px; padding:6px 8px; background:#fbfbfd; }
+    .gr-row:nth-child(even) .gr-cells { background:#f6f7fb; }
     .gr-week { text-align:center; padding:8px 2px; font-size:.72rem; color:var(--muted); border-left:1px dashed #eee; display:flex; flex-direction:column; gap:1px; position:relative; }
     .gr-week .wk { font-weight:700; color:var(--ink-2); }
     .gr-week .dt { font-size:.7rem; }
     .gr-now { background:var(--copilot-gradient-soft); border-radius:8px; }
     .gr-now .now-tag { font-size:.62rem; font-weight:700; color:var(--brand); }
 
-    .chip { position:relative; display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:9px; font-size:.8rem; line-height:1.15; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,.06); background:#fff; overflow:hidden; cursor:default; }
-    .chip::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--copilot-gradient); }
+    .chip { position:relative; display:flex; align-items:center; gap:6px; padding:7px 9px 7px 12px; border-radius:9px; font-size:.8rem; line-height:1.2; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,.08); background:#fff; overflow:hidden; cursor:default; }
+    .chip::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--copilot-gradient); }
+    /* whole-pill owner tints for stronger visual read */
+    .chip.o-microsoft { background:#e8f1ff; border-color:#bcd6f7; }
+    .chip.o-customer  { background:#e7f7ee; border-color:#b4e2c6; }
+    .chip.o-partner   { background:#fdefe0; border-color:#f4cfa6; }
+    .chip.o-fasttrack { background:#efe9ff; border-color:#d3c6f5; }
     .chip.o-microsoft::before{ background:#0f5bd6; } .chip.o-customer::before{ background:#107c41; }
     .chip.o-partner::before{ background:#c2570a; } .chip.o-fasttrack::before{ background:#6e5bd8; }
-    .chip-title { flex:1; min-width:0; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; }
-    .chip-actions { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; gap:2px; padding-left:14px; background:linear-gradient(90deg, rgba(255,255,255,0), #fff 40%); opacity:0; pointer-events:none; transition:opacity .12s; }
+    .chip-title { flex:1; min-width:0; font-weight:600; color:#1b1a19; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; }
+    .chip.o-microsoft .chip-title { color:#0a3d80; } .chip.o-customer .chip-title { color:#0b5a2f; }
+    .chip.o-partner .chip-title { color:#8a3d06; } .chip.o-fasttrack .chip-title { color:#4a3aa0; }
+    .chip-actions { position:absolute; right:3px; top:50%; transform:translateY(-50%); display:flex; gap:2px; padding-left:16px; opacity:0; pointer-events:none; transition:opacity .12s; }
+    .chip.o-microsoft .chip-actions { background:linear-gradient(90deg, rgba(232,241,255,0), #e8f1ff 45%); }
+    .chip.o-customer  .chip-actions { background:linear-gradient(90deg, rgba(231,247,238,0), #e7f7ee 45%); }
+    .chip.o-partner   .chip-actions { background:linear-gradient(90deg, rgba(253,239,224,0), #fdefe0 45%); }
+    .chip.o-fasttrack .chip-actions { background:linear-gradient(90deg, rgba(239,233,255,0), #efe9ff 45%); }
+    .chip:hover { box-shadow:var(--shadow-md); filter:brightness(0.98); }
     .chip:hover .chip-actions { opacity:1; pointer-events:auto; }
     .chip-edit, .chip-del { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
     .chip-del:hover { color:#c50f1f; background:#fde7e9; }
@@ -211,8 +224,8 @@
   <div id="print-area"></div>
 
   <div id="site-footer"></div>
-  <script src="assets/nav.js?v=6"></script>
-  <script src="assets/schedule.js?v=6"></script>
+  <script src="assets/nav.js?v=7"></script>
+  <script src="assets/schedule.js?v=7"></script>
   <script>
     (function () {
       var shell = document.getElementById("sched-shell");
