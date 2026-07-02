@@ -54,7 +54,7 @@
           <tbody id="cust-team"></tbody>
         </table>
       </div>
-      <p class="save-note" style="margin-top:14px">💾 Assignments save automatically to this browser. <button class="btn btn-outline btn-sm" id="clear-assign" type="button">Clear all assignments</button></p>
+      <p class="save-note" style="margin-top:14px">💾 Assignments save automatically to this browser. <button class="btn btn-primary btn-sm" id="export-roles" type="button">⬇ Export CSV</button> <button class="btn btn-outline btn-sm" id="clear-assign" type="button">Clear all assignments</button></p>
     </div>
   </section>
 
@@ -120,6 +120,21 @@
         document.querySelectorAll(".assignee").forEach(function(i){ i.value=""; });
       }
     });
+
+    function decode(s){ var t=document.createElement("textarea"); t.innerHTML=String(s); return t.value; }
+    function csvCell(s){ return '"' + String(s==null?"":s).replace(/"/g,'""') + '"'; }
+    function exportRolesCSV(){
+      var rows = [["Team","Key role","Responsibilities","Person / people assigned"]];
+      msTeam.forEach(function(r,i){ rows.push(["Microsoft", decode(r[0]), decode(r[1]), assigned["ms"+i]||""]); });
+      custTeam.forEach(function(r,i){ rows.push(["Customer", decode(r[0]), decode(r[1]), assigned["cust"+i]||""]); });
+      var csv = rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n");
+      var blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "copilot-adoption-team-roles.csv";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    }
+    document.getElementById("export-roles").addEventListener("click", exportRolesCSV);
   </script>
 </body>
 </html>

@@ -15,11 +15,15 @@ A static, fully interactive planning site for driving **Microsoft 365 Copilot** 
 ## Interactive schedule features
 
 - **Always moves forward** — the board re-anchors to the Monday of the current week every time it loads.
+- **Adjustable start date** — pick any Monday as the program start, or click **Today** to snap back to the current week.
 - **Add / edit / remove blocks** — create your own activities with track, owner, start week, duration and notes.
 - **Checkboxes for filtering** — show/hide by track and by owner, or hide completed items.
 - **Mark complete** — tick a block off directly on the timeline.
-- **Export** — download a **CSV** of the (filtered) plan, or **Export PDF** via the browser print dialog.
+- **Full-width board + Expand** — the timeline fills the column, with an **Expand** button for a full-browser view.
+- **Import / Export** — download a **CSV** or **PDF**, and **Import CSV** to reload a previous export and keep working.
 - **Persistence** — all edits are stored in the visitor’s browser (`localStorage`); a one-click **Reset to sample** restores the original timeline.
+
+The **Team & Roles** page also supports **Export CSV** of all roles, responsibilities and assignees.
 
 ## Tech
 

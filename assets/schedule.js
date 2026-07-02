@@ -59,6 +59,7 @@
   function defaultState() {
     return {
       weeks: 14,
+      anchor: null,
       items: SEED.map(function (s, i) { return Object.assign({ id: "seed-" + i, notes: "", done: false }, s); }),
       filters: { tracks: TRACKS.map(function (t) { return t.id; }), owners: OWNERS.map(function (o) { return o.id; }), onlyOpen: false }
     };
@@ -74,8 +75,11 @@
 
   /* ---------- dates ---------- */
   function mondayOf(d) { var x = new Date(d); var day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); x.setHours(0,0,0,0); return x; }
-  var START = mondayOf(new Date());
-  function weekStart(i) { var d = new Date(START); d.setDate(d.getDate() + i * 7); return d; }
+  function currentMonday() { return mondayOf(new Date()); }
+  function startMonday() { return state.anchor ? mondayOf(new Date(state.anchor + "T00:00:00")) : currentMonday(); }
+  function weekStart(i) { var d = new Date(startMonday()); d.setDate(d.getDate() + i * 7); return d; }
+  function isCurrentWeek(i) { return weekStart(i).getTime() === currentMonday().getTime(); }
+  function toISODate(d) { var m = String(d.getMonth() + 1).padStart(2, "0"); var day = String(d.getDate()).padStart(2, "0"); return d.getFullYear() + "-" + m + "-" + day; }
   function fmtShort(d) { return (d.getMonth() + 1) + "/" + d.getDate(); }
   function fmtLong(d) { return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
 
@@ -119,9 +123,10 @@
       '<div class="gr-label">Track</div><div class="gr-cells" style="grid-template-columns:repeat(' + N + ',1fr)">';
     for (var w = 0; w < N; w++) {
       var d = weekStart(w);
-      header += '<div class="gr-week' + (w === 0 ? " gr-now" : "") + '">' +
+      var now = isCurrentWeek(w);
+      header += '<div class="gr-week' + (now ? " gr-now" : "") + '">' +
         '<span class="wk">Wk ' + (w + 1) + '</span><span class="dt">' + fmtShort(d) + '</span>' +
-        (w === 0 ? '<span class="now-tag">This week</span>' : '') + '</div>';
+        (now ? '<span class="now-tag">This week</span>' : '') + '</div>';
     }
     header += "</div></div>";
 
@@ -232,12 +237,72 @@
     downloadBlob(csv, "copilot-adoption-schedule.csv", "text/csv;charset=utf-8;");
   }
   function trackLabel(id) { var t = TRACKS.filter(function (x) { return x.id === id; })[0]; return t ? t.label : id; }
+  function trackFromLabel(s) { s = String(s || "").trim().toLowerCase(); var m = TRACKS.filter(function (t) { return t.id.toLowerCase() === s || t.label.toLowerCase() === s; })[0]; return m ? m.id : "User"; }
+  function ownerFromLabel(s) { s = String(s || "").trim().toLowerCase(); var m = OWNERS.filter(function (o) { return o.id.toLowerCase() === s || o.label.toLowerCase() === s; })[0]; return m ? m.id : "Customer"; }
   function downloadBlob(content, name, type) {
     var blob = new Blob(["\ufeff" + content], { type: type });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  /* ---------- import ---------- */
+  function parseCSV(text) {
+    text = text.replace(/^\ufeff/, "");
+    var rows = [], row = [], cur = "", inQ = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+        else cur += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === ",") { row.push(cur); cur = ""; }
+        else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+        else if (c === "\r") { /* skip */ }
+        else cur += c;
+      }
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ""; }); });
+  }
+  function importCSV(text) {
+    var rows = parseCSV(text);
+    if (!rows.length) { alert("That file appears to be empty."); return; }
+    var header = rows[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    function col(names) { for (var n = 0; n < names.length; n++) { var idx = header.indexOf(names[n]); if (idx >= 0) return idx; } return -1; }
+    var iTitle = col(["title", "activity"]), iTrack = col(["track"]), iOwner = col(["owner"]),
+        iStart = col(["start week", "start"]), iSpan = col(["duration (weeks)", "duration", "weeks", "span"]),
+        iStatus = col(["status"]), iNotes = col(["notes"]);
+    if (iTitle < 0) { alert("Couldn't find a Title/Activity column in that CSV. Use a file exported from this schedule."); return; }
+    var items = [];
+    for (var r = 1; r < rows.length; r++) {
+      var cells = rows[r];
+      var title = (cells[iTitle] || "").trim();
+      if (!title) continue;
+      var startRaw = iStart >= 0 ? String(cells[iStart] || "") : "1";
+      var startNum = parseInt((startRaw.match(/\d+/) || ["1"])[0], 10);
+      var start = Math.max(0, (isNaN(startNum) ? 1 : startNum) - 1);
+      var span = iSpan >= 0 ? Math.max(1, parseInt(cells[iSpan], 10) || 1) : 1;
+      var status = iStatus >= 0 ? String(cells[iStatus] || "").trim().toLowerCase() : "";
+      items.push({
+        id: uid(), title: title,
+        track: trackFromLabel(iTrack >= 0 ? cells[iTrack] : "User"),
+        owner: ownerFromLabel(iOwner >= 0 ? cells[iOwner] : "Customer"),
+        start: start, span: span,
+        notes: iNotes >= 0 ? String(cells[iNotes] || "").trim() : "",
+        done: status.indexOf("complete") >= 0 || status === "done" || status === "true"
+      });
+    }
+    if (!items.length) { alert("No schedule rows found in that CSV."); return; }
+    var maxWeek = items.reduce(function (m, it) { return Math.max(m, it.start + it.span); }, 0);
+    if (maxWeek > state.weeks) { state.weeks = [8, 14, 20, 26].filter(function (w) { return w >= maxWeek; })[0] || 26; }
+    state.items = items;
+    save(); buildFilters();
+    document.getElementById("weeks-sel").value = String(state.weeks);
+    render();
+    alert("Imported " + items.length + " item" + (items.length === 1 ? "" : "s") + " from your CSV.");
   }
   function exportPDF() {
     var items = visibleItems().slice().sort(function (a, b) { return a.start - b.start || a.track.localeCompare(b.track); });
@@ -267,6 +332,35 @@
     document.getElementById("weeks-sel").addEventListener("change", function (e) {
       state.weeks = parseInt(e.target.value, 10); save(); render();
     });
+
+    var dateInput = document.getElementById("anchor-date");
+    if (dateInput) {
+      dateInput.addEventListener("change", function (e) {
+        state.anchor = e.target.value || null; save(); render();
+      });
+    }
+    var resetDate = document.getElementById("anchor-reset");
+    if (resetDate) {
+      resetDate.addEventListener("click", function () {
+        state.anchor = null; save();
+        document.getElementById("anchor-date").value = toISODate(currentMonday());
+        render();
+      });
+    }
+    var importInput = document.getElementById("import-file");
+    if (importInput) {
+      document.getElementById("import-csv").addEventListener("click", function () { importInput.click(); });
+      importInput.addEventListener("change", function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          if (confirm("Import will replace the current items on your board. Continue?")) importCSV(String(reader.result));
+          importInput.value = "";
+        };
+        reader.readAsText(file);
+      });
+    }
 
     document.getElementById("modal-form").addEventListener("submit", submitModal);
     document.getElementById("modal-cancel").addEventListener("click", closeModal);
@@ -310,6 +404,8 @@
 
   function init() {
     document.getElementById("weeks-sel").value = String(state.weeks);
+    var di = document.getElementById("anchor-date");
+    if (di) di.value = state.anchor || toISODate(currentMonday());
     buildFilters(); wire(); render();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();

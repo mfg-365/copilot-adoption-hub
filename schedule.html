@@ -108,7 +108,7 @@
     <div class="container">
       <p class="eyebrow">Interactive schedule</p>
       <h1>Your <span class="gradient-text">rollout timeline</span>, always starting this week</h1>
-      <p>The board below is seeded with the sample adoption program and re-anchors to the current week every time you open it. Add your own blocks, filter by track or owner, tick items off, and export when you’re ready.</p>
+      <p>The board below is seeded with the sample adoption program and re-anchors to the current week every time you open it. Add your own blocks, filter by track or owner, tick items off, adjust the start date, import a previous export, and download when you’re ready.</p>
     </div>
   </header>
 
@@ -116,11 +116,17 @@
     <div class="container">
       <div class="toolbar">
         <button class="btn btn-primary" id="add-block">＋ Add block</button>
+        <button class="btn btn-outline" id="import-csv">⬆ Import CSV</button>
         <button class="btn btn-outline" id="export-csv">⬇ Export CSV</button>
         <button class="btn btn-outline" id="export-pdf">🖨 Export PDF</button>
         <button class="btn btn-outline" id="reset-sample">↺ Reset to sample</button>
         <button class="btn btn-outline" id="expand-board" title="Expand the timeline to fill the browser">⛶ Expand</button>
+        <input type="file" id="import-file" accept=".csv,text/csv" style="display:none" />
         <div class="spacer"></div>
+        <label class="stat" title="Set the week the program starts. Leave on today to always track the current week.">Start:
+          <input type="date" id="anchor-date" class="btn btn-outline btn-sm" style="padding:6px 8px" />
+        </label>
+        <button class="mini-link" id="anchor-reset" title="Reset start date to the current week">Today</button>
         <label class="stat">Window:
           <select id="weeks-sel" class="btn btn-outline btn-sm" style="padding:6px 8px">
             <option value="8">8 weeks</option>
