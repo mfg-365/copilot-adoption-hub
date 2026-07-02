@@ -17,18 +17,33 @@
     .layout { display:grid; grid-template-columns: 240px 1fr; gap:22px; align-items:start; }
     @media (max-width: 900px){ .layout { grid-template-columns:1fr; } }
 
-    .panel { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:16px 16px 18px; box-shadow:var(--shadow-sm); position:sticky; top:78px; }
+    /* filters now sit below the board in a horizontal bar */
+    .panel { background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px 18px; box-shadow:var(--shadow-sm); }
     .panel h4 { margin:.2rem 0 .5rem; font-size:.95rem; }
-    .panel .sub { display:flex; justify-content:space-between; align-items:center; margin-top:14px; }
+    .panel .sub { display:flex; justify-content:space-between; align-items:center; gap:14px; }
     .chk { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:.9rem; cursor:pointer; }
     .chk input { width:16px; height:16px; accent-color: var(--brand); }
     .mini-link { font-size:.78rem; background:none; border:none; color:var(--brand-blue); cursor:pointer; padding:0; }
     .mini-link:hover { text-decoration:underline; }
     .hr { height:1px; background:var(--line); margin:14px 0; border:0; }
 
+    .filters-below { margin-top:22px; }
+    .filters-row { display:flex; flex-wrap:wrap; gap:14px 40px; }
+    .fgroup { min-width:190px; }
+    .chk-inline { display:flex; flex-wrap:wrap; gap:4px 20px; }
+    .chk-inline .chk { padding:4px 0; }
+
     /* board */
-    .board-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow-sm); }
+    .board-wrap { position:relative; width:100%; overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:#fff; box-shadow:var(--shadow-sm); }
     #board { padding: 4px 0 12px; }
+    .expand-exit { display:none; position:absolute; top:10px; right:14px; z-index:20; }
+    /* expanded (fallback) + native fullscreen */
+    .board-wrap.expanded { position:fixed; inset:0; width:100vw; height:100vh; z-index:300; border-radius:0; margin:0; overflow:auto; }
+    .board-wrap.expanded .expand-exit,
+    .board-wrap:fullscreen .expand-exit { display:inline-flex; position:fixed; }
+    .board-wrap:fullscreen { background:#fff; overflow:auto; border-radius:0; padding-top:6px; }
+    .board-wrap.expanded #board,
+    .board-wrap:fullscreen #board { padding-top:8px; }
     .gr-row { display:flex; align-items:stretch; border-bottom:1px solid var(--line); }
     .gr-row:last-child { border-bottom:none; }
     .gr-head { position:sticky; top:0; z-index:3; background:#fbfaff; }
@@ -104,6 +119,7 @@
         <button class="btn btn-outline" id="export-csv">⬇ Export CSV</button>
         <button class="btn btn-outline" id="export-pdf">🖨 Export PDF</button>
         <button class="btn btn-outline" id="reset-sample">↺ Reset to sample</button>
+        <button class="btn btn-outline" id="expand-board" title="Expand the timeline to fill the browser">⛶ Expand</button>
         <div class="spacer"></div>
         <label class="stat">Window:
           <select id="weeks-sel" class="btn btn-outline btn-sm" style="padding:6px 8px">
@@ -128,24 +144,30 @@
         <span style="margin-left:auto">Hover a block to edit or remove · double-click to edit</span>
       </div>
 
-      <div class="layout">
-        <aside class="panel">
-          <div class="sub" style="margin-top:0"><h4 style="margin:0">Tracks</h4>
-            <span><button class="mini-link" id="select-all-tracks">All</button> · <button class="mini-link" id="clear-all-tracks">None</button></span>
-          </div>
-          <div id="filter-tracks"></div>
-          <hr class="hr" />
-          <h4>Owner</h4>
-          <div id="filter-owners"></div>
-          <hr class="hr" />
-          <label class="chk"><input type="checkbox" id="filter-open"> Hide completed</label>
-          <p style="font-size:.76rem;color:var(--muted);margin:14px 0 0">Tip: double-click a block to edit it. Changes save to this browser only.</p>
-        </aside>
-
-        <div class="board-wrap">
-          <div id="board"></div>
-        </div>
+      <div class="board-wrap" id="board-wrap">
+        <button class="btn btn-outline btn-sm expand-exit" id="collapse-board" title="Exit full screen">✕ Exit full screen</button>
+        <div id="board"></div>
       </div>
+
+      <aside class="panel filters-below">
+        <div class="filters-row">
+          <div class="fgroup">
+            <div class="sub"><h4>Tracks</h4>
+              <span><button class="mini-link" id="select-all-tracks">All</button> · <button class="mini-link" id="clear-all-tracks">None</button></span>
+            </div>
+            <div id="filter-tracks" class="chk-inline"></div>
+          </div>
+          <div class="fgroup">
+            <h4>Owner</h4>
+            <div id="filter-owners" class="chk-inline"></div>
+          </div>
+          <div class="fgroup">
+            <h4>Options</h4>
+            <label class="chk"><input type="checkbox" id="filter-open"> Hide completed</label>
+            <p style="font-size:.76rem;color:var(--muted);margin:8px 0 0">Double-click a block to edit it. Changes save to this browser only.</p>
+          </div>
+        </div>
+      </aside>
     </div>
   </section>
 
@@ -184,5 +206,37 @@
   <div id="site-footer"></div>
   <script src="assets/nav.js"></script>
   <script src="assets/schedule.js"></script>
+  <script>
+    (function () {
+      var wrap = document.getElementById("board-wrap");
+      var expandBtn = document.getElementById("expand-board");
+      var exitBtn = document.getElementById("collapse-board");
+      var canFs = !!(wrap.requestFullscreen || wrap.webkitRequestFullscreen);
+
+      function enter() {
+        if (canFs) {
+          (wrap.requestFullscreen || wrap.webkitRequestFullscreen).call(wrap).catch(function () { wrap.classList.add("expanded"); });
+        } else {
+          wrap.classList.add("expanded");
+          document.body.style.overflow = "hidden";
+        }
+      }
+      function exit() {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        }
+        wrap.classList.remove("expanded");
+        document.body.style.overflow = "";
+      }
+      function isOpen() { return !!(document.fullscreenElement || document.webkitFullscreenElement) || wrap.classList.contains("expanded"); }
+
+      expandBtn.addEventListener("click", function () { isOpen() ? exit() : enter(); });
+      exitBtn.addEventListener("click", exit);
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && wrap.classList.contains("expanded")) exit(); });
+      document.addEventListener("fullscreenchange", function () {
+        expandBtn.innerHTML = document.fullscreenElement ? "⛶ Exit" : "⛶ Expand";
+      });
+    })();
+  </script>
 </body>
 </html>
