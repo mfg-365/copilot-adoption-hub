@@ -66,15 +66,11 @@
     .chip.o-microsoft::before{ background:#0f5bd6; } .chip.o-customer::before{ background:#107c41; }
     .chip.o-partner::before{ background:#c2570a; } .chip.o-fasttrack::before{ background:#6e5bd8; }
     .chip-title { flex:1; min-width:0; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; }
-    .chip-tick { flex:0 0 auto; color:#107c41; font-weight:800; font-size:.9rem; line-height:1; }
     .chip-actions { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; gap:2px; padding-left:14px; background:linear-gradient(90deg, rgba(255,255,255,0), #fff 40%); opacity:0; pointer-events:none; transition:opacity .12s; }
     .chip:hover .chip-actions { opacity:1; pointer-events:auto; }
-    .chip-edit, .chip-del, .chip-done-btn { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
-    .chip-done-btn:hover { color:#107c41; background:#e9f9ef; }
+    .chip-edit, .chip-del { border:none; background:none; cursor:pointer; font-size:.9rem; line-height:1; color:var(--muted); padding:2px 3px; border-radius:5px; }
     .chip-del:hover { color:#c50f1f; background:#fde7e9; }
     .chip-edit:hover { color:var(--brand); background:#f0ecff; }
-    .chip-done { opacity:.6; }
-    .chip-done .chip-title { text-decoration:line-through; }
     .empty { padding:40px; text-align:center; color:var(--muted); }
 
     .legend { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin:0 0 14px; font-size:.82rem; color:var(--muted); }
@@ -113,7 +109,7 @@
     <div class="container">
       <p class="eyebrow">Interactive schedule</p>
       <h1>Your <span class="gradient-text">rollout timeline</span>, your way</h1>
-      <p>Add your own blocks, filter by track or owner, mark items complete, adjust the start date, import a previous export, and download when you’re ready.</p>
+      <p>Add your own blocks, filter by track or owner, adjust the start date, import a previous export, and download when you’re ready.</p>
     </div>
   </header>
 
@@ -146,7 +142,6 @@
       <div style="margin-bottom:16px">
         <span class="stat">Total <b id="count-total">0</b></span>
         <span class="stat">Shown <b id="count-shown">0</b></span>
-        <span class="stat">Complete <b id="count-done">0</b></span>
       </div>
       <div class="legend">
         <span style="font-weight:600;color:var(--ink-2)">Owner:</span>
@@ -154,7 +149,7 @@
         <span class="lg"><span class="bar" style="background:#107c41"></span>Customer</span>
         <span class="lg"><span class="bar" style="background:#c2570a"></span>Partner</span>
         <span class="lg"><span class="bar" style="background:#6e5bd8"></span>FastTrack / CSU</span>
-        <span style="margin-left:auto">Hover a block to mark complete (✓), edit or remove · double-click to edit</span>
+        <span style="margin-left:auto">Hover a block to edit or remove · double-click to edit</span>
       </div>
 
       <div class="board-wrap" id="board-wrap">
@@ -175,47 +170,43 @@
           </div>
           <div class="fgroup">
             <h4>Options</h4>
-            <label class="chk"><input type="checkbox" id="filter-open"> Hide completed</label>
-            <p style="font-size:.76rem;color:var(--muted);margin:8px 0 0">Double-click a block to edit it. Changes save to this browser only.</p>
+            <p style="font-size:.76rem;color:var(--muted);margin:0">Double-click a block to edit it. Changes save to this browser only.</p>
           </div>
         </div>
       </aside>
+
+      <!-- Add / edit modal (inside shell so it shows in full-screen) -->
+      <div class="modal" id="modal">
+        <div class="modal-card">
+          <h3 id="modal-title">Add a block</h3>
+          <form id="modal-form">
+            <input type="hidden" id="f-id" />
+            <div class="field">
+              <label for="f-title">Title</label>
+              <input id="f-title" placeholder="e.g. Sales team Copilot deep dive" required />
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="f-track">Track</label><select id="f-track"></select></div>
+              <div class="field"><label for="f-owner">Owner</label><select id="f-owner"></select></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="f-start">Start week</label><select id="f-start"></select></div>
+              <div class="field"><label for="f-span">Duration (weeks)</label><input id="f-span" type="number" min="1" max="26" value="1" /></div>
+            </div>
+            <div class="field">
+              <label for="f-notes">Notes (optional)</label>
+              <textarea id="f-notes" placeholder="Audience, owner detail, links…"></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-outline" id="modal-cancel">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save block</button>
+            </div>
+          </form>
+        </div>
+      </div>
       </div>
     </div>
   </section>
-
-  <!-- Add / edit modal -->
-  <div class="modal" id="modal">
-    <div class="modal-card">
-      <h3 id="modal-title">Add a block</h3>
-      <form id="modal-form">
-        <input type="hidden" id="f-id" />
-        <div class="field">
-          <label for="f-title">Title</label>
-          <input id="f-title" placeholder="e.g. Sales team Copilot deep dive" required />
-        </div>
-        <div class="field-row">
-          <div class="field"><label for="f-track">Track</label><select id="f-track"></select></div>
-          <div class="field"><label for="f-owner">Owner</label><select id="f-owner"></select></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label for="f-start">Start week</label><select id="f-start"></select></div>
-          <div class="field"><label for="f-span">Duration (weeks)</label><input id="f-span" type="number" min="1" max="26" value="1" /></div>
-        </div>
-        <div class="field">
-          <label for="f-notes">Notes (optional)</label>
-          <textarea id="f-notes" placeholder="Audience, owner detail, links…"></textarea>
-        </div>
-        <div class="field">
-          <label class="chk" style="font-weight:600"><input type="checkbox" id="f-done"> Mark as complete</label>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-outline" id="modal-cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save block</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <div id="print-area"></div>
 

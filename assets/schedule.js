@@ -60,8 +60,8 @@
     return {
       weeks: 14,
       anchor: null,
-      items: SEED.map(function (s, i) { return Object.assign({ id: "seed-" + i, notes: "", done: false }, s); }),
-      filters: { tracks: TRACKS.map(function (t) { return t.id; }), owners: OWNERS.map(function (o) { return o.id; }), onlyOpen: false }
+      items: SEED.map(function (s, i) { return Object.assign({ id: "seed-" + i, notes: "" }, s); }),
+      filters: { tracks: TRACKS.map(function (t) { return t.id; }), owners: OWNERS.map(function (o) { return o.id; }) }
     };
   }
   function load() {
@@ -91,7 +91,6 @@
     return state.items.filter(function (it) {
       if (state.filters.tracks.indexOf(it.track) < 0) return false;
       if (state.filters.owners.indexOf(it.owner) < 0) return false;
-      if (state.filters.onlyOpen && it.done) return false;
       return true;
     });
   }
@@ -143,13 +142,11 @@
         if (start >= N) return; // off to the right of window
         var span = Math.min(it.span, N - start);
         var o = ownerMeta(it.owner);
-        cells += '<div class="chip ' + (it.done ? "chip-done " : "") + o.cls + '" ' +
+        cells += '<div class="chip ' + o.cls + '" ' +
           'style="grid-column:' + (start + 1) + " / span " + span + ';grid-row:' + (it._lane + 1) + '" ' +
-          'data-id="' + it.id + '" title="' + esc(it.title) + " · " + o.label + (it.done ? " · Complete" : "") + (it.notes ? " — " + esc(it.notes) : "") + '">' +
-          (it.done ? '<span class="chip-tick" aria-hidden="true">✓</span>' : '') +
+          'data-id="' + it.id + '" title="' + esc(it.title) + " · " + o.label + (it.notes ? " — " + esc(it.notes) : "") + '">' +
           '<span class="chip-title">' + esc(it.title) + '</span>' +
           '<span class="chip-actions">' +
-            '<button class="chip-done-btn" title="' + (it.done ? "Mark as active" : "Mark complete") + '" aria-label="Toggle complete">' + (it.done ? "↺" : "✓") + '</button>' +
             '<button class="chip-edit" title="Edit" aria-label="Edit">✎</button>' +
             '<button class="chip-del" title="Remove" aria-label="Remove">×</button>' +
           '</span>' +
@@ -164,7 +161,6 @@
     board.innerHTML = header + (rows || '<div class="empty">No items match the current filters.</div>');
     document.getElementById("count-total").textContent = state.items.length;
     document.getElementById("count-shown").textContent = vis.length;
-    document.getElementById("count-done").textContent = state.items.filter(function (i) { return i.done; }).length;
     renderChips();
   }
 
@@ -182,7 +178,6 @@
       var on = state.filters.owners.indexOf(o.id) >= 0;
       return '<label class="chk"><input type="checkbox" data-fowner="' + o.id + '" ' + (on ? "checked" : "") + '> <span class="badge-owner ' + o.cls + '">' + o.label + '</span></label>';
     }).join("");
-    document.getElementById("filter-open").checked = state.filters.onlyOpen;
   }
 
   /* ---------- modal (add / edit) ---------- */
@@ -203,7 +198,6 @@
     document.getElementById("f-owner").innerHTML = OWNERS.map(function (o) { return '<option value="' + o.id + '"' + (editing && item.owner === o.id ? " selected" : "") + '>' + o.label + "</option>"; }).join("");
     document.getElementById("f-start").innerHTML = weekOptions(editing ? item.start : 0);
     document.getElementById("f-span").value = editing ? item.span : 1;
-    document.getElementById("f-done").checked = editing ? !!item.done : false;
     document.getElementById("modal").classList.add("open");
     setTimeout(function () { document.getElementById("f-title").focus(); }, 30);
   }
@@ -218,8 +212,7 @@
       owner: document.getElementById("f-owner").value,
       start: parseInt(document.getElementById("f-start").value, 10) || 0,
       span: Math.max(1, parseInt(document.getElementById("f-span").value, 10) || 1),
-      notes: document.getElementById("f-notes").value.trim(),
-      done: document.getElementById("f-done").checked
+      notes: document.getElementById("f-notes").value.trim()
     };
     if (id) {
       state.items = state.items.map(function (it) { return it.id === id ? Object.assign(it, data) : it; });
@@ -231,10 +224,10 @@
 
   /* ---------- export ---------- */
   function exportCSV() {
-    var rows = [["Title", "Track", "Owner", "Start week", "Week of", "Duration (weeks)", "Status", "Notes"]];
+    var rows = [["Title", "Track", "Owner", "Start week", "Week of", "Duration (weeks)", "Notes"]];
     visibleItems().slice().sort(function (a, b) { return a.start - b.start; }).forEach(function (it) {
       rows.push([it.title, trackLabel(it.track), ownerMeta(it.owner).label, "Wk " + (it.start + 1),
-        fmtLong(weekStart(it.start)), it.span, it.done ? "Complete" : "Planned", it.notes || ""]);
+        fmtLong(weekStart(it.start)), it.span, it.notes || ""]);
     });
     var csv = rows.map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","); }).join("\r\n");
     downloadBlob(csv, "copilot-adoption-schedule.csv", "text/csv;charset=utf-8;");
@@ -277,7 +270,7 @@
     function col(names) { for (var n = 0; n < names.length; n++) { var idx = header.indexOf(names[n]); if (idx >= 0) return idx; } return -1; }
     var iTitle = col(["title", "activity"]), iTrack = col(["track"]), iOwner = col(["owner"]),
         iStart = col(["start week", "start"]), iSpan = col(["duration (weeks)", "duration", "weeks", "span"]),
-        iStatus = col(["status"]), iNotes = col(["notes"]);
+        iNotes = col(["notes"]);
     if (iTitle < 0) { alert("Couldn't find a Title/Activity column in that CSV. Use a file exported from this schedule."); return; }
     var items = [];
     for (var r = 1; r < rows.length; r++) {
@@ -288,14 +281,12 @@
       var startNum = parseInt((startRaw.match(/\d+/) || ["1"])[0], 10);
       var start = Math.max(0, (isNaN(startNum) ? 1 : startNum) - 1);
       var span = iSpan >= 0 ? Math.max(1, parseInt(cells[iSpan], 10) || 1) : 1;
-      var status = iStatus >= 0 ? String(cells[iStatus] || "").trim().toLowerCase() : "";
       items.push({
         id: uid(), title: title,
         track: trackFromLabel(iTrack >= 0 ? cells[iTrack] : "User"),
         owner: ownerFromLabel(iOwner >= 0 ? cells[iOwner] : "Customer"),
         start: start, span: span,
-        notes: iNotes >= 0 ? String(cells[iNotes] || "").trim() : "",
-        done: status.indexOf("complete") >= 0 || status === "done" || status === "true"
+        notes: iNotes >= 0 ? String(cells[iNotes] || "").trim() : ""
       });
     }
     if (!items.length) { alert("No schedule rows found in that CSV."); return; }
@@ -312,12 +303,12 @@
     var rows = items.map(function (it) {
       return "<tr><td>" + esc(it.title) + "</td><td>" + trackLabel(it.track) + "</td><td>" + ownerMeta(it.owner).label +
         "</td><td>Wk " + (it.start + 1) + "<br><small>" + fmtLong(weekStart(it.start)) + "</small></td><td>" + it.span +
-        "</td><td>" + (it.done ? "✓ Complete" : "Planned") + "</td></tr>";
+        "</td></tr>";
     }).join("");
     var area = document.getElementById("print-area");
     area.innerHTML = '<div class="print-head"><h1>Microsoft 365 Copilot — Adoption Schedule</h1>' +
       '<p>Program window starting week of ' + fmtLong(weekStart(0)) + ' · ' + items.length + ' items</p></div>' +
-      '<table class="print-table"><thead><tr><th>Activity</th><th>Track</th><th>Owner</th><th>Start</th><th>Weeks</th><th>Status</th></tr></thead><tbody>' +
+      '<table class="print-table"><thead><tr><th>Activity</th><th>Track</th><th>Owner</th><th>Start</th><th>Weeks</th></tr></thead><tbody>' +
       rows + "</tbody></table>";
     window.print();
   }
@@ -374,8 +365,6 @@
         toggleArr(state.filters.tracks, e.target.getAttribute("data-ftrack"), e.target.checked); save(); render();
       } else if (e.target.hasAttribute("data-fowner")) {
         toggleArr(state.filters.owners, e.target.getAttribute("data-fowner"), e.target.checked); save(); render();
-      } else if (e.target.id === "filter-open") {
-        state.filters.onlyOpen = e.target.checked; save(); render();
       }
     });
 
@@ -386,14 +375,10 @@
         state.items = state.items.filter(function (it) { return it.id !== id; }); save(); render();
       } else if (e.target.classList.contains("chip-edit")) {
         openModal(state.items.filter(function (it) { return it.id === id; })[0]);
-      } else if (e.target.classList.contains("chip-done-btn")) {
-        var it = state.items.filter(function (x) { return x.id === id; })[0];
-        if (it) setDone(id, !it.done);
       }
     });
     document.getElementById("board").addEventListener("dblclick", function (e) {
       var chip = e.target.closest(".chip"); if (!chip) return;
-      if (e.target.classList.contains("chip-done-btn")) return;
       openModal(state.items.filter(function (it) { return it.id === chip.getAttribute("data-id"); })[0]);
     });
 
@@ -403,7 +388,6 @@
   }
   function setAll(key, arr, checked) { state.filters[key] = arr.slice(); save(); buildFilters(); render(); }
   function toggleArr(arr, val, on) { var i = arr.indexOf(val); if (on && i < 0) arr.push(val); if (!on && i >= 0) arr.splice(i, 1); }
-  function setDone(id, val) { state.items = state.items.map(function (it) { return it.id === id ? Object.assign(it, { done: val }) : it; }); save(); render(); }
 
   function init() {
     document.getElementById("weeks-sel").value = String(state.weeks);
